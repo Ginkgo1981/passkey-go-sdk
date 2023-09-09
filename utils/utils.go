@@ -16,6 +16,10 @@ func BytesTo0xHex(b []byte) string {
 	return fmt.Sprintf("0x%s", hex.EncodeToString(b))
 }
 
+func BytesToHex(b []byte) string {
+	return hex.EncodeToString(b)
+}
+
 func HexToBytes(h string) ([]byte, error) {
 	if strings.Contains(h, "0x") {
 		return hexutil.Decode(h)
