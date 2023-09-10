@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
+	"github.com/ginkgo981/pass-sdk-go/crypto/keccak"
 	"github.com/ginkgo981/pass-sdk-go/utils"
 )
 
@@ -57,4 +58,9 @@ func (key *Key) RecoverPubkey(message, sig []byte) []byte {
 		return nil
 	}
 	return pubkey
+}
+
+func (key *Key) PubkeyHash() []byte {
+	_, pubkey := key.Pubkey()
+	return keccak.Keccak160((pubkey))
 }
