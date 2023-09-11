@@ -4,10 +4,17 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 
+	"github.com/ginkgo981/pass-sdk-go/crypto/secp256r1"
+	"github.com/ginkgo981/pass-sdk-go/crypto/sha256"
 	"github.com/ginkgo981/pass-sdk-go/utils"
 	"github.com/nervosnetwork/ckb-sdk-go/v2/crypto/blake2b"
 	"github.com/nervosnetwork/ckb-sdk-go/v2/types"
 )
+
+type WebAuthnMsg struct {
+	AuthData   string
+	ClientData string
+}
 
 func GenerateWebAuthnChallenge(tx *types.Transaction) (string, error) {
 	txHash := tx.ComputeHash()
@@ -46,4 +53,37 @@ func GenerateWebAuthnChallenge(tx *types.Transaction) (string, error) {
 	base64.StdEncoding.Encode(challenge, []byte(msgHashHex))
 
 	return utils.BytesTo0xHex(challenge), nil
+}
+
+func signSecp256r1Tx(tx *types.Transaction, key *secp256r1.Key, mode byte, webAuthn *WebAuthnMsg) error {
+	clientDataBytes, err := utils.HexToBytes(webAuthn.ClientData)
+	if err != nil {
+		return err
+	}
+
+	clientDataHash := sha256.Sha256(clientDataBytes)
+	authData, err := utils.HexToBytes(webAuthn.AuthData)
+	if err != nil {
+		return err
+	}
+
+	signData := authData
+	signData = append(signData, clientDataHash...)
+	signature := key.Sign(sha256.Sha256(signData))
+	_, publicKey := key.Pubkey()
+
+	firstWitnessArgs, err := types.DeserializeWitnessArgs(tx.Witnesses[0])
+	if err != nil {
+		return err
+	}
+
+	witnessArgsLock := []byte{mode}
+	witnessArgsLock = append(witnessArgsLock, publicKey...)
+	witnessArgsLock = append(witnessArgsLock, signature...)
+	witnessArgsLock = append(witnessArgsLock, authData...)
+	witnessArgsLock = append(witnessArgsLock, clientDataBytes...)
+	firstWitnessArgs.Lock = witnessArgsLock
+
+	tx.Witnesses[0] = firstWitnessArgs.Serialize()
+	return nil
 }
