@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/ginkgo981/pass-sdk-go/crypto/keccak"
 	"github.com/ginkgo981/pass-sdk-go/utils"
 )
 
@@ -65,4 +66,9 @@ func (k *Key) VerifySignature(message []byte, sig []byte) bool {
 
 	pubkey, _ := k.Pubkey()
 	return ecdsa.Verify(pubkey, message, r, s)
+}
+
+func (key *Key) PubkeyHash() []byte {
+	_, pubkey := key.Pubkey()
+	return keccak.Keccak160((pubkey))
 }
